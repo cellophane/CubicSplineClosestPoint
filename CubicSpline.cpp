@@ -55,7 +55,7 @@ namespace CubicSplineTest
     {
     public:
         CubicBezierSpline(const WorldSpace* control_points);
-        float ClosestPointToSpline(const WorldSpace& position, const QuinticSolver* solver, WorldSpace& closest) const;
+        float ClosestPointToSpline(const WorldSpace& position, const QuinticSolver* solver, WorldSpace& closest, float& min_t) const;
         WorldSpace EvaluateAt(const float t) const;
     private:
         void Initialize();
@@ -88,21 +88,27 @@ namespace CubicSplineTest
 
     WorldSpace CubicBezierPath::ClosestPointToPath(
         const WorldSpace& position,
-        const ClosestPointSolver* solver) const
+        const ClosestPointSolver* solver, float& t, int& splineIndex) const
     {
         WorldSpace min_position{ 0.f };
         float min_dist_sq = std::numeric_limits<float>::max();
 
         // The closest point on the path, is the closest point from the set of closest points to each spline.
         WorldSpace spline_position{ 0.f };
+        int count = 0;
         for (const auto& spline : splines_)
         {
-            const float dist_sq = spline->ClosestPointToSpline(position, solver->Get(), spline_position);
+            float tmin = 0;
+            const float dist_sq = spline->ClosestPointToSpline(position, solver->Get(), spline_position,tmin);
             if (dist_sq < min_dist_sq)
             {
+                splineIndex = count;
                 min_dist_sq = dist_sq;
                 min_position = spline_position;
+                t = tmin;
+                
             }
+            count++;
         }
 
         return min_position;
@@ -493,8 +499,10 @@ namespace CubicSplineTest
     float CubicBezierSpline::ClosestPointToSpline(
         const WorldSpace& position,
         const QuinticSolver* solver,
-        WorldSpace& closest) const
+        WorldSpace& closest,
+		float& min_t) const
     {
+		
         Polynomial5 quintic;
         std::copy(precomputed_coefficients_.begin(), precomputed_coefficients_.end(), quintic.equation.begin());
         
@@ -508,6 +516,7 @@ namespace CubicSplineTest
 
         // Test the first control point.
         WorldSpace min_position = control_points_[0];
+		min_t = 0;
         float min_dist_sq = LengthSquared(position - min_position);
 
         // Test the roots.
@@ -519,6 +528,7 @@ namespace CubicSplineTest
             {
                 min_dist_sq = root_dist_sq;
                 min_position = root_position;
+				min_t = realRoots[i];
             }
         }
 
@@ -528,6 +538,7 @@ namespace CubicSplineTest
         {
             min_dist_sq = dist_sq;
             min_position = control_points_[3];
+			min_t = 1.0;
         }
 
         closest = min_position;

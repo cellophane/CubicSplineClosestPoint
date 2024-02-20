@@ -27,7 +27,7 @@ namespace CubicSplineTest
     {
     public:
         CubicBezierPath(const WorldSpace* control_points, const int num_points);
-        WorldSpace ClosestPointToPath(const WorldSpace& position, const ClosestPointSolver* solver) const;
+        WorldSpace ClosestPointToPath(const WorldSpace& position, const ClosestPointSolver* solver, float& t, int& index) const;
 
         ~CubicBezierPath();
     private:
